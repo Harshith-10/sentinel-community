@@ -1,0 +1,15 @@
+{
+  "name": "cpp",
+  "displayName": "C++",
+  "extension": ".cpp",
+  "command": "./program",
+  "args": [],
+  "timeout": 30000,
+  "compile": {
+    "command": "g++",
+    "args": ["{file}", "-o", "program"],
+    "timeout": 10000
+  },
+  "description": "Compile and execute C++ code using g++",
+  "example": "#include <iostream>\\nusing namespace std;\\n\\nint main() {\\n    cout << \\\"Hello, World!\\\" << endl;\\n    return 0;\\n}"
+}

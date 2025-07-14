@@ -1,0 +1,11 @@
+{
+  "name": "python",
+  "displayName": "Python",
+  "extension": ".py",
+  "command": "python3",
+  "args": ["{file}"],
+  "timeout": 30000,
+  "compile": null,
+  "description": "Execute Python code using Python 3",
+  "example": "print('Hello, World!')"
+}

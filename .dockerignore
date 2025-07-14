@@ -1,0 +1,16 @@
+node_modules
+dist
+*.log
+.git
+.gitignore
+README.md
+.env
+.nyc_output
+coverage
+.eslintrc.js
+.prettierrc
+.vscode
+*.test.ts
+*.spec.ts
+src/**/*.js
+src/**/*.js.map

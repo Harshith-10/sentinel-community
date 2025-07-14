@@ -1,0 +1,16 @@
+{
+  "name": "java",
+  "displayName": "Java",
+  "extension": ".java",
+  "command": "java",
+  "args": ["-cp", "{dir}", "Main"],
+  "timeout": 30000,
+  "compile": {
+    "command": "javac",
+    "args": ["{file}"],
+    "timeout": 10000
+  },
+  "filename": "Main.java",
+  "description": "Compile and execute Java code",
+  "example": "public class Main {\n    public static void main(String[] args) {\n        System.out.println(\"Hello, World!\");\n    }\n}"
+}

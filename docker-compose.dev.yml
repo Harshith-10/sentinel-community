@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:8-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --protected-mode no
+    networks:
+      - sentinel-network
+
+  # Master container for development
+  master:
+    build:
+      context: .
+      dockerfile: Dockerfile.master
+    ports:
+      - "8910:8910"
+    depends_on:
+      - redis
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - NODE_ENV=development
+    volumes:
+      - ./src:/usr/src/app/src
+      - ./config:/usr/src/app/config
+    restart: unless-stopped
+    networks:
+      - sentinel-network
+
+  # Single Python container for development
+  python-executor:
+    build:
+      context: .
+      dockerfile: dockerfiles/Dockerfile.python
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - EXECUTOR_ID=python-1
+      - LANGUAGE=python
+    depends_on:
+      - redis
+    volumes:
+      - ./src:/usr/src/app/src
+      - ./config:/usr/src/app/config
+    restart: unless-stopped
+    networks:
+      - sentinel-network
+
+  # Single Java container for development
+  java-executor:
+    build:
+      context: .
+      dockerfile: dockerfiles/Dockerfile.java
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - EXECUTOR_ID=java-1
+      - LANGUAGE=java
+    depends_on:
+      - redis
+    volumes:
+      - ./src:/usr/src/app/src
+      - ./config:/usr/src/app/config
+    restart: unless-stopped
+    networks:
+      - sentinel-network
+
+networks:
+  sentinel-network:
+    driver: bridge

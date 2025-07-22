@@ -1,53 +1,65 @@
-# Remote Code Execution Service
+# Remote Code Execution Service - Sentinel
 
-A minimal but functional remote code execution service similar to Judge0, supporting multiple programming languages with Docker containerization and Redis-based job queuing. Built with TypeScript for enhanced type safety and developer experience.
+A scalable multi-container remote code execution service with language-specific containers, load balancing, and intelligent job distribution. Built with TypeScript and designed for high-performance code execution at scale.
+
+## 🏗️ Architecture
+
+### Multi-Container Design
+- **Master Container**: API server, job orchestration, and load balancing
+- **Language-Specific Containers**: Isolated execution environments
+  - 2x Python containers (high demand)
+  - 2x Java containers (high demand)  
+  - 1x JavaScript container
+  - 1x C++ container
+  - 1x Go container
+
+### Benefits
+- **Better Isolation**: Each language runs in its optimized environment
+- **Scalability**: Independent scaling of language containers based on demand
+- **Load Balancing**: Intelligent job distribution across containers
+- **Resource Optimization**: Language-specific resource allocation
+- **Fault Tolerance**: Container failures don't affect other languages
 
 ## Features
 
 - **Multi-language support**: JavaScript, Python, Java, C++, Go
 - **Test case execution**: Run code against multiple test cases with automatic result comparison
+- **Intelligent load balancing**: Distributes jobs to least loaded containers
+- **Container monitoring**: Real-time load and performance metrics
 - **Asynchronous execution**: Redis-based job queue with Bull
-- **Security**: Basic sandboxing and resource limits
+- **Security**: Sandboxed execution in isolated containers
 - **Rate limiting**: IP-based request limiting
-- **Health monitoring**: Built-in health checks
-- **Docker support**: Containerized for easy deployment
+- **Health monitoring**: Comprehensive health checks for all services
+- **Horizontal scaling**: Easy to add more language containers
 - **TypeScript**: Full TypeScript support with strict type checking
-- **Modern tooling**: ESLint, development watch mode, and automated building
-- **Backward compatibility**: Supports both single input and test case modes
 
 ## Quick Start
 
-### Using Docker Compose (Recommended)
+### Production Deployment
 
 ```bash
 # Clone and navigate to project directory
 git clone <your-repo>
-cd remote-code-execution
+cd sentinel
 
-# Start services
+# Start all services (master + 7 executor containers)
 docker-compose up -d
 
-# Check health
+# Check system health and load
 curl http://localhost:8910/health
+curl http://localhost:8910/load
 ```
 
-### Local Development
+### Development Setup
 
 ```bash
-# Install dependencies
+# Use development compose (fewer containers)
+docker-compose -f docker-compose.dev.yml up -d
+
+# Or run locally with hot-reload
 npm install
-
-# Start Redis (required)
-docker run -d -p 6379:6379 redis:7-alpine
-
-# Build TypeScript
-npm run build
-
-# Start development server (with auto-restart)
-npm run dev
-
-# Or start production server
-npm start
+npm run dev:master    # Start master server
+npm run dev:executor  # Start executor worker
 ```
 
 ## Development Scripts
@@ -62,12 +74,14 @@ npm start
 ## API Endpoints
 
 ### Execute Code
+```http
+POST /execute
+```
+
+Submit code for execution with automatic load balancing across containers.
 
 #### Single Input Mode (Backward Compatible)
-```http
-POST /api/execute
-Content-Type: application/json
-
+```json
 {
   "code": "console.log('Hello, World!');",
   "language": "javascript",
@@ -76,6 +90,7 @@ Content-Type: application/json
 ```
 
 #### Test Cases Mode
+```json
 ```http
 POST /api/execute
 Content-Type: application/json
@@ -96,11 +111,100 @@ Response:
 {
   "id": "uuid-job-id",
   "status": "queued",
-  "message": "Code execution queued successfully"
+  "timestamp": "2025-01-15T10:30:00.000Z",
+  "message": "Job queued on python-1"
 }
 ```
 
-### Check Status
+### Check Job Status
+```http
+GET /job/{job-id}
+```
+
+Response:
+```json
+{
+  "id": "uuid-job-id",
+  "status": "completed",
+  "timestamp": "2025-01-15T10:30:15.000Z",
+  "output": "10\n6\n0",
+  "error": "",
+  "executionTime": 150,
+  "testCases": [
+    {
+      "input": "5",
+      "expected": "10",
+      "actualOutput": "10",
+      "passed": true,
+      "executionTime": 45
+    }
+  ]
+}
+```
+
+### System Health & Monitoring
+```http
+GET /health
+```
+
+Response:
+```json
+{
+  "status": "healthy",
+  "timestamp": "2025-01-15T10:30:00.000Z",
+  "redis": "connected",
+  "queues": {
+    "python-1": "healthy",
+    "python-2": "healthy",
+    "java-1": "healthy",
+    "java-2": "healthy",
+    "javascript-1": "healthy",
+    "cpp-1": "healthy",
+    "go-1": "healthy"
+  }
+}
+```
+
+### Container Load Monitoring
+```http
+GET /load
+```
+
+Response:
+```json
+{
+  "timestamp": "2025-01-15T10:30:00.000Z",
+  "totalWaiting": 5,
+  "totalActive": 3,
+  "containers": [
+    {
+      "containerId": "python-1",
+      "language": "python",
+      "waiting": 2,
+      "active": 1,
+      "completed": 150,
+      "failed": 2,
+      "totalJobs": 155
+    },
+    {
+      "containerId": "java-1",
+      "language": "java",
+      "waiting": 3,
+      "active": 2,
+      "completed": 98,
+      "failed": 1,
+      "totalJobs": 104
+    }
+  ]
+}
+```
+
+### Supported Languages
+```http
+GET /languages
+```
+
+### Check Status (Legacy)
 ```http
 GET /api/status/{job-id}
 ```
@@ -368,6 +472,62 @@ npm run docker:build
 # Run Docker container
 npm run docker:run
 ```
+
+## 🚀 Scaling & Operations
+
+### Horizontal Scaling
+
+Scale language containers based on demand:
+
+```bash
+# Scale Python containers to 4 instances
+docker-compose up -d --scale python-executor-1=2 --scale python-executor-2=2
+
+# Scale Java containers to 3 instances  
+docker-compose up -d --scale java-executor-1=2 --scale java-executor-2=1
+
+# Add more language support
+docker-compose up -d --scale cpp-executor=2
+```
+
+### Container Management
+
+```bash
+# View container status
+docker-compose ps
+
+# Check container logs
+docker-compose logs python-executor-1
+docker-compose logs master
+
+# Restart specific language containers
+docker-compose restart python-executor-1 python-executor-2
+
+# Update containers without downtime
+docker-compose up -d --no-deps master python-executor-1
+```
+
+### Performance Monitoring
+
+```bash
+# Monitor system load
+curl http://localhost:8910/load | jq
+
+# Check health status
+curl http://localhost:8910/health | jq
+
+# View specific container metrics
+docker stats sentinel_python-executor-1_1
+```
+
+### Configuration
+
+Language containers automatically detect their environment and register with Redis. No manual configuration needed.
+
+The master container uses intelligent load balancing:
+- Routes jobs to containers with the lowest queue size
+- Monitors container health and availability  
+- Provides real-time metrics via `/load` endpoint
 
 ## License
 

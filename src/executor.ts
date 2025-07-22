@@ -5,7 +5,8 @@ import { v4 as uuidv4 } from 'uuid';
 import languageManager from './languageManager';
 import { ExecutionResult, CommandResult, LanguageConfig, TestCase, TestCaseResult } from './types';
 
-const TEMP_DIR = '/tmp/code-execution';
+// Use platform-appropriate temp directory
+const TEMP_DIR = process.platform === 'win32' ? 'C:\\temp\\code-execution' : '/tmp/code-execution';
 const MAX_OUTPUT_SIZE = 1024 * 1024; // 1MB
 
 export async function executeCode(code: string, language: string, input = '', testCases?: TestCase[]): Promise<ExecutionResult> {
@@ -37,13 +38,23 @@ export async function executeCode(code: string, language: string, input = '', te
            .replace('{filename}', filename)
       );
       
-      await runCommand(
+      const compileResult = await runCommand(
         langConfig.compile.command,
         compileArgs,
         sessionDir,
         '',
         langConfig.compile.timeout || 10000
       );
+
+      // Check if compilation failed
+      if (compileResult.exitCode !== 0) {
+        return {
+          output: '',
+          error: `Compilation failed: ${compileResult.stderr || compileResult.stdout}`,
+          executionTime: Date.now() - startTime,
+          status: 'error'
+        };
+      }
     }
     
     // If test cases are provided, execute for each test case

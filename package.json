@@ -6,12 +6,25 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/server.js",
+    "start:master": "node dist/master.js",
+    "start:executor": "node dist/executor-worker.js",
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+    "dev:master": "ts-node-dev --respawn --transpile-only src/master.ts",
+    "dev:executor": "ts-node-dev --respawn --transpile-only src/executor-worker.ts",
     "dev:watch": "tsc --watch",
     "docker:build": "docker build -t code-executor .",
     "docker:run": "docker run -p 8910:8910 code-executor",
+    "docker:compose": "docker-compose up --build",
+    "docker:compose:dev": "docker-compose -f docker-compose.dev.yml up --build",
+    "docker:compose:down": "docker-compose down",
+    "docker:compose:down:dev": "docker-compose -f docker-compose.dev.yml down",
+    "docker:scale:python": "docker-compose up -d --scale python-executor-1=2 --scale python-executor-2=2",
+    "docker:scale:java": "docker-compose up -d --scale java-executor-1=2 --scale java-executor-2=2",
     "lint": "eslint src/**/*.ts",
-    "lint:fix": "eslint src/**/*.ts --fix"
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "test:architecture": "node test-architecture.js",
+    "docker:logs": "docker-compose logs -f",
+    "docker:logs:master": "docker-compose logs -f master"
   },
   "dependencies": {
     "bull": "^4.12.2",
@@ -19,6 +32,7 @@
     "express": "^4.18.2",
     "express-rate-limit": "^6.10.0",
     "helmet": "^7.0.0",
+    "node-fetch": "^3.3.2",
     "redis": "^4.6.8",
     "uuid": "^9.0.0"
   },

@@ -86,11 +86,32 @@ export interface ApiResponse<T = any> {
 }
 
 export interface HealthResponse {
-  status: 'healthy' | 'unhealthy';
+  status: 'healthy' | 'unhealthy' | 'degraded';
   timestamp: string;
+  redis?: string;
+  queues?: { [key: string]: string };
+  error?: string;
 }
 
 export interface LanguagesResponse {
   languages: LanguageInfo[];
   count: number;
+}
+
+export interface ContainerLoadInfo {
+  containerId: string;
+  language: string;
+  waiting: number;
+  active: number;
+  completed: number;
+  failed: number;
+  totalJobs: number;
+}
+
+export interface SystemLoadResponse {
+  timestamp: string;
+  containers: ContainerLoadInfo[];
+  totalWaiting: number;
+  totalActive: number;
+  error?: string;
 }

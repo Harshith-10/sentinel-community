@@ -1,75 +1,61 @@
 # Remote Code Execution Service - Sentinel
 
-A scalable multi-container remote code execution service with language-specific containers, load balancing, and intelligent job distribution. Built with TypeScript and designed for high-performance code execution at scale.
+A scalable, cloud-native remote code execution service designed for high-performance and automatic scaling with Kubernetes.
 
 ## 🏗️ Architecture
 
-### Multi-Container Design
-- **Master Container**: API server, job orchestration, and load balancing
-- **Language-Specific Containers**: Isolated execution environments
-  - 2x Python containers (high demand)
-  - 2x Java containers (high demand)  
-  - 1x JavaScript container
-  - 1x C++ container
-  - 1x Go container
+### Cloud-Native Design with Kubernetes
+- **Master Service**: A highly available API server that orchestrates job distribution.
+- **Language-Specific Executor Pods**: Isolated and independently scalable execution environments for each language.
+- **Redis**: Acts as the message broker for the job queue.
+- **KEDA (Kubernetes Event-driven Autoscaling)**: Provides automatic scaling of executor pods based on the number of jobs in the queue.
 
 ### Benefits
-- **Better Isolation**: Each language runs in its optimized environment
-- **Scalability**: Independent scaling of language containers based on demand
-- **Load Balancing**: Intelligent job distribution across containers
-- **Resource Optimization**: Language-specific resource allocation
-- **Fault Tolerance**: Container failures don't affect other languages
+- **Massive Scalability**: Horizontally scales to handle thousands of concurrent users.
+- **Intelligent Autoscaling**: Automatically adjusts the number of language-specific pods based on real-time demand, scaling down to zero to save costs.
+- **High Availability**: Replicated master and executor services ensure resilience and no single point of failure.
+- **Resource Optimization**: Fine-grained resource allocation and autoscaling for each language.
+- **Fault Tolerance**: The system is self-healing, with Kubernetes automatically replacing failed pods.
 
 ## Features
 
 - **Multi-language support**: JavaScript, Python, Java, C++, Go
 - **Test case execution**: Run code against multiple test cases with automatic result comparison
-- **Intelligent load balancing**: Distributes jobs to least loaded containers
-- **Container monitoring**: Real-time load and performance metrics
-- **Asynchronous execution**: Redis-based job queue with Bull
-- **Security**: Sandboxed execution in isolated containers
-- **Rate limiting**: IP-based request limiting
-- **Health monitoring**: Comprehensive health checks for all services
-- **Horizontal scaling**: Easy to add more language containers
-- **TypeScript**: Full TypeScript support with strict type checking
+- **Intelligent load balancing**: Distributes jobs to the least loaded containers.
+- **Asynchronous execution**: Redis-based job queue with Bull.
+- **Security**: Sandboxed execution in isolated containers with a non-root user.
+- **IP-based Rate limiting**: Protects the service from abuse.
+- **Health monitoring**: Comprehensive health checks for all services.
+- **TypeScript**: Full TypeScript support with strict type checking.
 
-## Quick Start
+## 🚀 Kubernetes Deployment
 
-### Production Deployment
+**Prerequisites:**
+* A running Kubernetes cluster.
+* `kubectl` configured to connect to your cluster.
+* [KEDA](https://keda.sh/docs/2.10/deploy/) installed in your cluster.
+* Docker images for the services pushed to a container registry.
 
-```bash
-# Clone and navigate to project directory
-git clone <your-repo>
-cd sentinel
+1.  **Build and Push Docker Images**:
+    Replace `your-docker-repo` in `package.json` with your Docker Hub username or private registry.
+    ```bash
+    npm run docker:build
+    npm run docker:push
+    ```
 
-# Start all services (master + 7 executor containers)
-docker-compose up -d
+2.  **Deploy to Kubernetes**:
+    Navigate to the `k8s` directory and apply the manifests.
+    ```bash
+    cd k8s
+    kubectl apply -f .
+    ```
 
-# Check system health and load
-curl http://localhost:8910/health
-curl http://localhost:8910/load
-```
-
-### Development Setup
-
-```bash
-# Use development compose (fewer containers)
-docker-compose -f docker-compose.dev.yml up -d
-
-# Or run locally with hot-reload
-npm install
-npm run dev:master    # Start master server
-npm run dev:executor  # Start executor worker
-```
-
-## Development Scripts
-
-- `npm run build` - Compile TypeScript to JavaScript
-- `npm run dev` - Start development server with hot reload
-- `npm run dev:watch` - Watch mode for TypeScript compilation
-- `npm start` - Start production server
-- `npm run lint` - Run ESLint
-- `npm run lint:fix` - Run ESLint with auto-fix
+3.  **Access the Service**:
+    Find the external IP of the `sentinel-master-service`.
+    ```bash
+    kubectl get services
+    ```
+    You can then access the API at `http://<EXTERNAL-IP>`.
 
 ## API Endpoints
 
@@ -310,224 +296,20 @@ Response:
 }
 ```
 
-## Supported Languages
-
-- **JavaScript** (Node.js)
-- **Python** (Python 3)
-- **Java** (OpenJDK 11)
-- **C++** (g++)
-- **Go**
-
-## Example Usage
-
-```javascript
-// Submit code for execution
-const response = await fetch('http://localhost:8910/api/execute', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    code: 'print("Hello from Python!")',
-    language: 'python'
-  })
-});
-
-const { id } = await response.json();
-
-// Poll for results
-const pollResult = async () => {
-  const result = await fetch(`http://localhost:8910/api/result/${id}`);
-  if (result.ok) {
-    const data = await result.json();
-    console.log(data.output); // "Hello from Python!"
-  }
-};
-
-setTimeout(pollResult, 2000);
-```
-
-## Test Cases Usage Examples
-
-### Example 1: Simple Math Operations
-```javascript
-// JavaScript example for doubling numbers
-const request = {
-  code: `
-const num = parseInt(process.argv[2] || '0');
-console.log(num * 2);
-  `,
-  language: "javascript",
-  testCases: [
-    { input: "5", expected: "10" },
-    { input: "0", expected: "0" },
-    { input: "-3", expected: "-6" }
-  ]
-};
-```
-
-### Example 2: String Processing
-```python
-# Python example for reversing strings
-request = {
-  "code": """
-s = input().strip()
-print(s[::-1])
-""",
-  "language": "python",
-  "testCases": [
-    { "input": "hello", "expected": "olleh" },
-    { "input": "world", "expected": "dlrow" },
-    { "input": "a", "expected": "a" },
-    { "input": "", "expected": "" }
-  ]
-}
-```
-
-### Example 3: Complex Algorithm Testing
-```cpp
-// C++ example for factorial calculation
-{
-  "code": "#include <iostream>\nusing namespace std;\nint main() {\n  int n;\n  cin >> n;\n  long long fact = 1;\n  for(int i = 1; i <= n; i++) {\n    fact *= i;\n  }\n  cout << fact << endl;\n  return 0;\n}",
-  "language": "cpp",
-  "testCases": [
-    { "input": "0", "expected": "1" },
-    { "input": "1", "expected": "1" },
-    { "input": "5", "expected": "120" },
-    { "input": "10", "expected": "3628800" }
-  ]
-}
-```
-
-## Test Case Features
-
-- **Automatic Output Comparison**: Each test case compares actual output with expected output
-- **Individual Timing**: Each test case has its own execution time measurement
-- **Error Handling**: Errors in individual test cases don't stop execution of remaining cases
-- **Pass/Fail Status**: Each test case returns a boolean `passed` status
-- **Detailed Results**: Full input, expected, and actual output for each test case
-- **Backward Compatibility**: Single input mode still works alongside test cases
-
-## Response Format for Test Cases
-
-Each test case result includes:
-- `input`: The input provided to the code
-- `expected`: The expected output
-- `actualOutput`: The actual output from code execution
-- `passed`: Boolean indicating if actualOutput matches expected
-- `error`: Error message if execution failed (optional)
-- `executionTime`: Time taken for this specific test case in milliseconds
-
-## Security Considerations
+## 🛡️ Security Considerations
 
 **Current Implementation:**
-- Basic process isolation
-- Execution timeout (30 seconds)
-- Output size limits (1MB)
-- Rate limiting (100 requests per 15 minutes)
-- No network access from executed code
+- **Container Security**: Executors run as a non-root user.
+- **Resource Limits**: Kubernetes deployments have CPU and memory limits.
+- **Rate Limiting**: IP-based rate limiting is in place.
+- **Network Policies**: (Recommended) Implement Kubernetes NetworkPolicies to restrict communication between pods.
 
 **Production Recommendations:**
-- Use Docker with additional security constraints
-- Implement proper container orchestration
-- Add input validation and sanitization
-- Use dedicated execution environments
-- Implement user authentication and authorization
-- Add comprehensive logging and monitoring
-
-## Configuration
-
-Environment variables:
-- `PORT`: Server port (default: 8910)
-- `REDIS_HOST`: Redis host (default: localhost)
-- `REDIS_PORT`: Redis port (default: 6379)
-- `NODE_ENV`: Environment (development/production)
-
-## Architecture
-
-```
-Client Request → Express Server → Redis Queue → Job Worker → Docker Container → Result Storage
-```
-
-## Next Steps
-
-1. **Enhanced Security**: Add gVisor, seccomp profiles, and network restrictions
-2. **Kubernetes Deployment**: Scale with container orchestration
-3. **Monitoring**: Add Prometheus metrics and centralized logging
-4. **User Management**: Authentication and resource quotas
-5. **Language Extensions**: Add more programming languages
-6. **WebSocket Support**: Real-time execution updates
-7. **File Upload**: Support for multi-file projects
-
-## Development
-
-```bash
-# Install dependencies
-npm install
-
-# Run in development mode
-npm run dev
-
-# Build Docker image
-npm run docker:build
-
-# Run Docker container
-npm run docker:run
-```
-
-## 🚀 Scaling & Operations
-
-### Horizontal Scaling
-
-Scale language containers based on demand:
-
-```bash
-# Scale Python containers to 4 instances
-docker-compose up -d --scale python-executor-1=2 --scale python-executor-2=2
-
-# Scale Java containers to 3 instances  
-docker-compose up -d --scale java-executor-1=2 --scale java-executor-2=1
-
-# Add more language support
-docker-compose up -d --scale cpp-executor=2
-```
-
-### Container Management
-
-```bash
-# View container status
-docker-compose ps
-
-# Check container logs
-docker-compose logs python-executor-1
-docker-compose logs master
-
-# Restart specific language containers
-docker-compose restart python-executor-1 python-executor-2
-
-# Update containers without downtime
-docker-compose up -d --no-deps master python-executor-1
-```
-
-### Performance Monitoring
-
-```bash
-# Monitor system load
-curl http://localhost:8910/load | jq
-
-# Check health status
-curl http://localhost:8910/health | jq
-
-# View specific container metrics
-docker stats sentinel_python-executor-1_1
-```
-
-### Configuration
-
-Language containers automatically detect their environment and register with Redis. No manual configuration needed.
-
-The master container uses intelligent load balancing:
-- Routes jobs to containers with the lowest queue size
-- Monitors container health and availability  
-- Provides real-time metrics via `/load` endpoint
+- **gVisor or Kata Containers**: Use sandboxed container runtimes for stronger isolation.
+- **Seccomp and AppArmor**: Apply security profiles to restrict the system calls that can be made from within a container.
+- **Managed Redis**: Use a managed Redis service for better security and reliability.
+- **Ingress Controller**: Use an Ingress controller with a WAF (Web Application Firewall) for advanced traffic filtering and security.
+- **Secrets Management**: Store sensitive information like API keys and database credentials in Kubernetes Secrets.
 
 ## License
 

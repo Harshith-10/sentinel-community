@@ -3,9 +3,8 @@
   "displayName": "Go",
   "extension": ".go",
   "command": "go",
-  "args": ["run", "{file}"],
-  "timeout": 30000,
-  "compile": null,
-  "description": "Execute Go code using go run",
-  "example": "package main\\n\\nimport \\\"fmt\\\"\\n\\nfunc main() {\\n    fmt.Println(\\\"Hello, World!\\\")\\n}"
+  "args": [
+    "run",
+    "{file}"
+  ]
 }

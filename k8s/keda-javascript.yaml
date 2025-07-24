@@ -1,0 +1,17 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: javascript-executor-scaler
+spec:
+  scaleTargetRef:
+    name: javascript-executor
+  pollingInterval: 15
+  cooldownPeriod:  30
+  minReplicaCount: 1
+  maxReplicaCount: 10
+  triggers:
+  - type: redis
+    metadata:
+      address: redis:6379
+      listName: bull:javascript-executor-1:wait # Adjust if your queue naming is different
+      listLength: "5"

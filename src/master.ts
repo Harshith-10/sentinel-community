@@ -5,12 +5,13 @@ import rateLimit from 'express-rate-limit';
 import { createClient } from 'redis';
 import Queue from 'bull';
 import { v4 as uuidv4 } from 'uuid';
+import http from 'http';
 import languageManager from './languageManager';
-import { 
-  ExecuteCodeRequest, 
-  JobData, 
-  JobResult, 
-  HealthResponse, 
+import {
+  ExecuteCodeRequest,
+  JobData,
+  JobResult,
+  HealthResponse,
   LanguagesResponse,
   ContainerLoadInfo,
   SystemLoadResponse
@@ -54,7 +55,7 @@ const initializeQueues = () => {
       connectTimeout: 10000
     }
   });
-  
+
   codeQueues['python-2'] = new Queue('python-executor-2', {
     redis: {
       host: process.env.REDIS_HOST || 'localhost',
@@ -73,7 +74,7 @@ const initializeQueues = () => {
       connectTimeout: 10000
     }
   });
-  
+
   codeQueues['java-2'] = new Queue('java-executor-2', {
     redis: {
       host: process.env.REDIS_HOST || 'localhost',
@@ -115,18 +116,18 @@ const initializeQueues = () => {
 // Load balancer for selecting the best container
 const selectContainer = async (language: string): Promise<string> => {
   const containers = getContainersForLanguage(language);
-  
+
   if (containers.length === 1) {
     return containers[0];
   }
 
   // Load balancing logic: choose container with lowest queue size
   let bestContainer = containers[0];
-  let lowestQueueSize = await codeQueues[bestContainer].getWaiting();
+  let lowestQueueSize = await codeQueues[bestContainer].getWaitingCount();
 
   for (const container of containers.slice(1)) {
-    const queueSize = await codeQueues[container].getWaiting();
-    if (queueSize.length < lowestQueueSize.length) {
+    const queueSize = await codeQueues[container].getWaitingCount();
+    if (queueSize < lowestQueueSize) {
       lowestQueueSize = queueSize;
       bestContainer = container;
     }
@@ -156,11 +157,12 @@ const getContainersForLanguage = (language: string): string[] => {
 app.use(helmet());
 app.use(cors());
 app.use(express.json({ limit: '1mb' }));
+app.set('trust proxy', 1); // Trust first proxy, important for running behind a load balancer
 
-// Rate limiting - Optimized for higher capacity
+// Rate limiting - Optimized for higher capacity (1000+ users)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 500, // limit each IP to 500 requests per windowMs (supports ~200 users/IP)
+  max: 200, // limit each IP to 2 requests per windowMs
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
@@ -172,7 +174,7 @@ app.use(limiter);
 app.get('/health', async (req: Request, res: Response<HealthResponse>) => {
   try {
     await redisClient.ping();
-    
+
     // Check all queue connections
     const queueStatuses = await Promise.all(
       Object.entries(codeQueues).map(async ([name, queue]) => {
@@ -185,7 +187,7 @@ app.get('/health', async (req: Request, res: Response<HealthResponse>) => {
       })
     );
 
-    const allQueuesHealthy = queueStatuses.every(status => 
+    const allQueuesHealthy = queueStatuses.every(status =>
       Object.values(status)[0] === 'healthy'
     );
 
@@ -218,19 +220,19 @@ app.get('/load', async (req: Request, res: Response<SystemLoadResponse>) => {
     const containerLoads: ContainerLoadInfo[] = [];
 
     for (const [containerId, queue] of Object.entries(codeQueues)) {
-      const waiting = await queue.getWaiting();
-      const active = await queue.getActive();
-      const completed = await queue.getCompleted();
-      const failed = await queue.getFailed();
+      const waitingCount = await queue.getWaitingCount();
+      const activeCount = await queue.getActiveCount();
+      const completedCount = await queue.getCompletedCount();
+      const failedCount = await queue.getFailedCount();
 
       containerLoads.push({
         containerId,
         language: containerId.split('-')[0],
-        waiting: waiting.length,
-        active: active.length,
-        completed: completed.length,
-        failed: failed.length,
-        totalJobs: waiting.length + active.length + completed.length + failed.length
+        waiting: waitingCount,
+        active: activeCount,
+        completed: completedCount,
+        failed: failedCount,
+        totalJobs: waitingCount + activeCount + completedCount + failedCount
       });
     }
 
@@ -323,14 +325,14 @@ app.post('/execute', async (req: Request, res: Response<JobResult>) => {
 app.get('/job/:id', async (req: Request, res: Response<JobResult>) => {
   try {
     const { id } = req.params;
-    
+
     // Search across all queues for the job
     for (const [containerId, queue] of Object.entries(codeQueues)) {
       const job = await queue.getJob(id);
-      
+
       if (job) {
         const state = await job.getState();
-        
+
         let status: JobResult['status'];
         switch (state) {
           case 'waiting':
@@ -388,19 +390,20 @@ app.get('/job/:id', async (req: Request, res: Response<JobResult>) => {
 });
 
 // Start server
+let server: http.Server;
 const startServer = async () => {
   try {
     await redisClient.connect();
     console.log('Connected to Redis');
-    
+
     // Load language configurations
     await languageManager.loadLanguages();
     console.log('Loaded language configurations');
-    
+
     initializeQueues();
     console.log('Initialized job queues for all language containers');
-    
-    app.listen(port, () => {
+
+    server = app.listen(port, () => {
       console.log(`Master server running on port ${port}`);
       console.log('Container architecture:');
       console.log('- Python: 2 containers (load balanced)');
@@ -414,5 +417,19 @@ const startServer = async () => {
     process.exit(1);
   }
 };
+
+const gracefulShutdown = () => {
+  console.log('Received shutdown signal, closing server gracefully.');
+  server.close(() => {
+    console.log('HTTP server closed.');
+    redisClient.quit().then(() => {
+        console.log('Redis client disconnected.');
+        process.exit(0);
+    });
+  });
+};
+
+process.on('SIGTERM', gracefulShutdown);
+process.on('SIGINT', gracefulShutdown);
 
 startServer();

@@ -3,9 +3,7 @@
   "displayName": "JavaScript",
   "extension": ".js",
   "command": "node",
-  "args": ["{file}"],
-  "timeout": 30000,
-  "compile": null,
-  "description": "Execute JavaScript code using Node.js",
-  "example": "console.log('Hello, World!');"
+  "args": [
+    "{file}"
+  ]
 }

@@ -8,17 +8,9 @@ services:
     command: redis-server --appendonly yes --protected-mode no
     volumes:
       - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    stdin_open: true
-    tty: true
     networks:
       - sentinel-network
 
-  # Master container - API server and orchestrator
   master:
     build:
       context: .
@@ -32,104 +24,15 @@ services:
       - REDIS_PORT=6379
       - NODE_ENV=production
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8910/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
     networks:
       - sentinel-network
 
-  # Python containers (2x for high load)
-  python-executor-1:
-    build:
-      context: .
-      dockerfile: dockerfiles/Dockerfile.python
-    environment:
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - EXECUTOR_ID=python-1
-      - LANGUAGE=python
-    depends_on:
-      - redis
-    restart: unless-stopped
-    networks:
-      - sentinel-network
-    volumes:
-      - python_temp_1:/tmp/code-execution
+volumes:
+  redis_data:
 
-  python-executor-2:
-    build:
-      context: .
-      dockerfile: dockerfiles/Dockerfile.python
-    environment:
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - EXECUTOR_ID=python-2
-      - LANGUAGE=python
-    depends_on:
-      - redis
-    restart: unless-stopped
-    networks:
-      - sentinel-network
-    volumes:
-      - python_temp_2:/tmp/code-execution
-
-  # Java containers (2x for high load)
-  java-executor-1:
-    build:
-      context: .
-      dockerfile: dockerfiles/Dockerfile.java
-    environment:
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - EXECUTOR_ID=java-1
-      - LANGUAGE=java
-    depends_on:
-      - redis
-    restart: unless-stopped
-    networks:
-      - sentinel-network
-    volumes:
-      - java_temp_1:/tmp/code-execution
-
-  java-executor-2:
-    build:
-      context: .
-      dockerfile: dockerfiles/Dockerfile.java
-    environment:
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - EXECUTOR_ID=java-2
-      - LANGUAGE=java
-    depends_on:
-      - redis
-    restart: unless-stopped
-    networks:
-      - sentinel-network
-    volumes:
-      - java_temp_2:/tmp/code-execution
-
-  # JavaScript container
-  javascript-executor:
-    build:
-      context: .
-      dockerfile: dockerfiles/Dockerfile.javascript
-    environment:
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - EXECUTOR_ID=javascript-1
-      - LANGUAGE=javascript
-    depends_on:
-      - redis
-    restart: unless-stopped
-    networks:
-      - sentinel-network
-    volumes:
-      - javascript_temp:/tmp/code-execution
-
-  # C++ container
-  cpp-executor:
+networks:
+  sentinel-network:
+    driver: bridgecpp-executor:
     build:
       context: .
       dockerfile: dockerfiles/Dockerfile.cpp
@@ -142,12 +45,7 @@ services:
       - redis
     restart: unless-stopped
     networks:
-      - sentinel-network
-    volumes:
-      - cpp_temp:/tmp/code-execution
-
-  # Go container
-  go-executor:
+      - sentinel-networkgo-executor:
     build:
       context: .
       dockerfile: dockerfiles/Dockerfile.go
@@ -160,20 +58,56 @@ services:
       - redis
     restart: unless-stopped
     networks:
+      - sentinel-networkjava-executor:
+    build:
+      context: .
+      dockerfile: dockerfiles/Dockerfile.java
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - EXECUTOR_ID=java-1
+      - LANGUAGE=java
+    depends_on:
+      - redis
+    restart: unless-stopped
+    networks:
+      - sentinel-networkjavascript-executor:
+    build:
+      context: .
+      dockerfile: dockerfiles/Dockerfile.javascript
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - EXECUTOR_ID=javascript-1
+      - LANGUAGE=javascript
+    depends_on:
+      - redis
+    restart: unless-stopped
+    networks:
+      - sentinel-networkpython-executor:
+    build:
+      context: .
+      dockerfile: dockerfiles/Dockerfile.python
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - EXECUTOR_ID=python-1
+      - LANGUAGE=python
+    depends_on:
+      - redis
+    restart: unless-stopped
+    networks:
+      - sentinel-networkrust-executor:
+    build:
+      context: .
+      dockerfile: dockerfiles/Dockerfile.rust
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - EXECUTOR_ID=rust-1
+      - LANGUAGE=rust
+    depends_on:
+      - redis
+    restart: unless-stopped
+    networks:
       - sentinel-network
-    volumes:
-      - go_temp:/tmp/code-execution
-
-volumes:
-  redis_data:
-  python_temp_1:
-  python_temp_2:
-  java_temp_1:
-  java_temp_2:
-  javascript_temp:
-  cpp_temp:
-  go_temp:
-
-networks:
-  sentinel-network:
-    driver: bridge

@@ -1,0 +1,119 @@
+[
+  {
+    "name": "cpp",
+    "displayName": "C++",
+    "extension": ".cpp",
+    "command": "./program",
+    "args": [],
+    "compile": {
+      "command": "g++",
+      "args": [
+        "{file}",
+        "-o",
+        "program"
+      ],
+      "timeout": 10000
+    },
+    "dockerImage": "alpine:3.22",
+    "k8s": {
+      "replicas": 2,
+      "cpu": "1",
+      "memory": "1Gi"
+    }
+  },
+  {
+    "name": "go",
+    "displayName": "Go",
+    "extension": ".go",
+    "command": "go",
+    "args": [
+      "run",
+      "{file}"
+    ],
+    "dockerImage": "golang:1.24-alpine",
+    "k8s": {
+      "replicas": 2,
+      "cpu": "1",
+      "memory": "1Gi"
+    }
+  },
+  {
+    "name": "java",
+    "displayName": "Java",
+    "extension": ".java",
+    "command": "java",
+    "args": [
+      "-cp",
+      "{dir}",
+      "Main"
+    ],
+    "compile": {
+      "command": "javac",
+      "args": [
+        "{file}"
+      ],
+      "timeout": 10000
+    },
+    "filename": "Main.java",
+    "dockerImage": "eclipse-temurin:21-alpine",
+    "k8s": {
+      "replicas": 2,
+      "cpu": "1",
+      "memory": "1Gi"
+    }
+  },
+  {
+    "name": "javascript",
+    "displayName": "JavaScript",
+    "extension": ".js",
+    "command": "node",
+    "args": [
+      "{file}"
+    ],
+    "dockerImage": "node:22-alpine",
+    "k8s": {
+      "replicas": 2,
+      "cpu": "1",
+      "memory": "1Gi"
+    }
+  },
+  {
+    "name": "python",
+    "displayName": "Python",
+    "extension": ".py",
+    "command": "python3",
+    "args": [
+      "{file}"
+    ],
+    "dockerImage": "python:3.11-alpine",
+    "k8s": {
+      "replicas": 2,
+      "cpu": "1",
+      "memory": "1Gi"
+    }
+  },
+  {
+    "name": "rust",
+    "displayName": "Rust",
+    "extension": ".rs",
+    "command": "./program",
+    "args": [
+      "{file}"
+    ],
+    "dockerImage": "rust:1.88-alpine",
+    "k8s": {
+      "replicas": 1,
+      "cpu": "500m",
+      "memory": "512Mi"
+    },
+    "compile": {
+      "command": "rustc",
+      "args": [
+        "main.rs",
+        "-o",
+        "program"
+      ],
+      "timeout": 10000
+    }
+  }
+]

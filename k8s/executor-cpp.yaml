@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cpp-executor
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cpp-executor
+  template:
+    metadata:
+      labels:
+        app: cpp-executor
+    spec:
+      containers:
+      - name: cpp-executor
+        image: harshithd/sentinel-executor-cpp:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: REDIS_HOST
+          value: "redis"
+        - name: REDIS_PORT
+          value: "6379"
+        - name: LANGUAGE
+          value: "cpp"
+        - name: EXECUTOR_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        resources:
+          requests:
+            cpu: "1"
+            memory: "1Gi"
+          limits:
+            cpu: "1"
+            memory: "1Gi"

@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: python-executor
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: python-executor
+  template:
+    metadata:
+      labels:
+        app: python-executor
+    spec:
+      containers:
+      - name: python-executor
+        image: harshithd/sentinel-executor-python:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: REDIS_HOST
+          value: "redis"
+        - name: REDIS_PORT
+          value: "6379"
+        - name: LANGUAGE
+          value: "python"
+        - name: EXECUTOR_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        resources:
+          requests:
+            cpu: "1"
+            memory: "1Gi"
+          limits:
+            cpu: "1"
+            memory: "1Gi"

@@ -1,0 +1,17 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: cpp-executor-scaler
+spec:
+  scaleTargetRef:
+    name: cpp-executor
+  pollingInterval: 15
+  cooldownPeriod:  30
+  minReplicaCount: 1
+  maxReplicaCount: 10
+  triggers:
+  - type: redis
+    metadata:
+      address: redis:6379
+      listName: bull:cpp-executor-1:wait # Adjust if your queue naming is different
+      listLength: "5"

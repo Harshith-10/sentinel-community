@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sentinel-master
+spec:
+  replicas: 2 # Start with 2 replicas for high availability
+  selector:
+    matchLabels:
+      app: sentinel-master
+  template:
+    metadata:
+      labels:
+        app: sentinel-master
+    spec:
+      containers:
+      - name: master
+        image: harshithd/sentinel-master:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8910
+        env:
+        - name: REDIS_HOST
+          value: "redis"
+        - name: REDIS_PORT
+          value: "6379"
+        - name: NODE_ENV
+          value: "production"
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sentinel-master-service
+spec:
+  type: LoadBalancer # Exposes the service externally
+  ports:
+  - port: 8910
+    targetPort: 8910
+  selector:
+    app: sentinel-master

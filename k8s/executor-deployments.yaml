@@ -1,0 +1,184 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: python-executor
+spec:
+  replicas: 2 # Initial number of replicas, KEDA will autoscale this
+  selector:
+    matchLabels:
+      app: python-executor
+  template:
+    metadata:
+      labels:
+        app: python-executor
+    spec:
+      containers:
+      - name: python-executor
+        image: harshithd/sentinel-executor-python:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: REDIS_HOST
+          value: "redis"
+        - name: REDIS_PORT
+          value: "6379"
+        - name: LANGUAGE
+          value: "python"
+        - name: EXECUTOR_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+          limits:
+            cpu: "1"
+            memory: "1Gi"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: java-executor
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: java-executor
+  template:
+    metadata:
+      labels:
+        app: java-executor
+    spec:
+      containers:
+      - name: java-executor
+        image: harshithd/sentinel-executor-java:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: REDIS_HOST
+          value: "redis"
+        - name: REDIS_PORT
+          value: "6379"
+        - name: LANGUAGE
+          value: "java"
+        - name: EXECUTOR_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+          limits:
+            cpu: "1"
+            memory: "1Gi"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: javascript-executor
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: javascript-executor
+  template:
+    metadata:
+      labels:
+        app: javascript-executor
+    spec:
+      containers:
+      - name: javascript-executor
+        image: harshithd/sentinel-executor-javascript:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: REDIS_HOST
+          value: "redis"
+        - name: REDIS_PORT
+          value: "6379"
+        - name: LANGUAGE
+          value: "javascript"
+        - name: EXECUTOR_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+          limits:
+            cpu: "1"
+            memory: "1Gi"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cpp-executor
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cpp-executor
+  template:
+    metadata:
+      labels:
+        app: cpp-executor
+    spec:
+      containers:
+      - name: cpp-executor
+        image: harshithd/sentinel-executor-cpp:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: REDIS_HOST
+          value: "redis"
+        - name: REDIS_PORT
+          value: "6379"
+        - name: LANGUAGE
+          value: "cpp"
+        - name: EXECUTOR_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+          limits:
+            cpu: "1"
+            memory: "1Gi"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: go-executor
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: go-executor
+  template:
+    metadata:
+      labels:
+        app: go-executor
+    spec:
+      containers:
+      - name: go-executor
+        image: harshithd/sentinel-executor-go:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: REDIS_HOST
+          value: "redis"
+        - name: REDIS_PORT
+          value: "6379"
+        - name: LANGUAGE
+          value: "go"
+        - name: EXECUTOR_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+          limits:
+            cpu: "1"
+            memory: "1Gi"

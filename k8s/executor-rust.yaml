@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rust-executor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rust-executor
+  template:
+    metadata:
+      labels:
+        app: rust-executor
+    spec:
+      containers:
+      - name: rust-executor
+        image: harshithd/sentinel-executor-rust:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: REDIS_HOST
+          value: "redis"
+        - name: REDIS_PORT
+          value: "6379"
+        - name: LANGUAGE
+          value: "rust"
+        - name: EXECUTOR_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"

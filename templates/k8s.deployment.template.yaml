@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{languageName}}-executor
+spec:
+  replicas: {{k8sReplicas}}
+  selector:
+    matchLabels:
+      app: {{languageName}}-executor
+  template:
+    metadata:
+      labels:
+        app: {{languageName}}-executor
+    spec:
+      containers:
+      - name: {{languageName}}-executor
+        image: harshithd/sentinel-executor-{{languageName}}:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: REDIS_HOST
+          value: "redis"
+        - name: REDIS_PORT
+          value: "6379"
+        - name: LANGUAGE
+          value: "{{languageName}}"
+        - name: EXECUTOR_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        resources:
+          requests:
+            cpu: "{{k8sCpu}}"
+            memory: "{{k8sMemory}}"
+          limits:
+            cpu: "{{k8sCpu}}"
+            memory: "{{k8sMemory}}"

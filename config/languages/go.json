@@ -6,5 +6,6 @@
   "args": [
     "run",
     "{file}"
-  ]
+  ],
+  "timeout": 30000
 }

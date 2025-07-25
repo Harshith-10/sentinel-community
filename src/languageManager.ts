@@ -61,9 +61,7 @@ class LanguageManager {
   getLanguageInfo(): LanguageInfo[] {
     return this.getAllLanguages().map(lang => ({
       name: lang.name,
-      displayName: lang.displayName,
-      ...(lang.description && { description: lang.description }),
-      ...(lang.example && { example: lang.example })
+      displayName: lang.displayName
     }));
   }
 }

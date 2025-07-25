@@ -10,8 +10,6 @@ export interface LanguageConfig {
     args: string[];
     timeout: number;
   };
-  description?: string;
-  example?: string;
   filename?: string;
 }
 

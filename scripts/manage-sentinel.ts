@@ -11,6 +11,7 @@ interface LanguageDetails {
   extension: string; // e.g., '.py'
   command: string; // e.g., 'python3'
   args: string[]; // e.g., ['{file}']
+  timeout: number;
   compile?: {
     command: string;
     args: string[];
@@ -143,7 +144,14 @@ async function addLanguage() {
     { name: 'command', message: "Execution Command (e.g., 'ruby')", default: 'ruby' },
     { name: 'argsStr', message: "Execution Arguments, comma-separated (e.g., '{file}')", default: '{file}' },
     { name: 'dockerImage', message: "Docker Base Image (e.g., 'ruby:3.2-alpine')", default: 'ruby:3.2-alpine' },
+    { name: 'timeout', message: 'Execution timeout (ms):', default: 30000, type: 'number' },
     { name: 'isCompiled', type: 'confirm', message: 'Is this a compiled language?', default: false },
+    {
+      name: 'compileTimeout',
+      message: 'Compilation timeout (ms):',
+      default: 10000,
+      when: (ans) => ans.isCompiled,
+    },
     {
       name: 'compileCommand',
       message: "Compilation Command (e.g., 'gcc')",
@@ -179,6 +187,7 @@ async function addLanguage() {
     extension: answers.extension,
     command: answers.command,
     args: answers.argsStr.split(',').map((s: string) => s.trim()),
+    timeout: answers.timeout,
     dockerImage: answers.dockerImage,
     k8s: {
       replicas: answers.k8sReplicas,
@@ -189,9 +198,9 @@ async function addLanguage() {
 
   if (answers.isCompiled) {
     newLang.compile = {
+      timeout: answers.compileTimeout,
       command: answers.compileCommand,
-      args: answers.compileArgsStr.split(',').map((s: string) => s.trim()),
-      timeout: 10000,
+      args: answers.compileArgsStr.split(',').map((s: string) => s.trim())
     };
   }
   

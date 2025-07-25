@@ -4,6 +4,7 @@
   "extension": ".cpp",
   "command": "./program",
   "args": [],
+  "timeout": 30000,
   "compile": {
     "command": "g++",
     "args": [

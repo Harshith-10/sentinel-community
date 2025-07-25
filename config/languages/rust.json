@@ -6,6 +6,7 @@
   "args": [
     "{file}"
   ],
+  "timeout": 30000,
   "compile": {
     "command": "rustc",
     "args": [

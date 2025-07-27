@@ -44,112 +44,22 @@ redisClient.on('ready', () => {
 // Job queues for different languages
 const codeQueues: { [key: string]: Queue.Queue } = {};
 
-// Initialize queues for each language with load balancing
-const initializeQueues = () => {
-  // Python queues (2 containers)
-  codeQueues['python-1'] = new Queue('python-executor-1', {
-    redis: {
-      host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379') || 6379,
-      family: 4,
-      connectTimeout: 10000
-    }
-  });
+// Initialize queues for each language dynamically
+const initializeQueues = async () => {
+  await languageManager.loadLanguages();
+  const languages = languageManager.getSupportedLanguages();
 
-  codeQueues['python-2'] = new Queue('python-executor-2', {
-    redis: {
-      host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379') || 6379,
-      family: 4,
-      connectTimeout: 10000
-    }
-  });
-
-  // Java queues (2 containers)
-  codeQueues['java-1'] = new Queue('java-executor-1', {
-    redis: {
-      host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379') || 6379,
-      family: 4,
-      connectTimeout: 10000
-    }
-  });
-
-  codeQueues['java-2'] = new Queue('java-executor-2', {
-    redis: {
-      host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379') || 6379,
-      family: 4,
-      connectTimeout: 10000
-    }
-  });
-
-  // Single container languages
-  codeQueues['javascript-1'] = new Queue('javascript-executor', {
-    redis: {
-      host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379') || 6379,
-      family: 4,
-      connectTimeout: 10000
-    }
-  });
-
-  codeQueues['cpp-1'] = new Queue('cpp-executor', {
-    redis: {
-      host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379') || 6379,
-      family: 4,
-      connectTimeout: 10000
-    }
-  });
-
-  codeQueues['go-1'] = new Queue('go-executor', {
-    redis: {
-      host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379') || 6379,
-      family: 4,
-      connectTimeout: 10000
-    }
-  });
-};
-
-// Load balancer for selecting the best container
-const selectContainer = async (language: string): Promise<string> => {
-  const containers = getContainersForLanguage(language);
-
-  if (containers.length === 1) {
-    return containers[0];
-  }
-
-  // Load balancing logic: choose container with lowest queue size
-  let bestContainer = containers[0];
-  let lowestQueueSize = await codeQueues[bestContainer].getWaitingCount();
-
-  for (const container of containers.slice(1)) {
-    const queueSize = await codeQueues[container].getWaitingCount();
-    if (queueSize < lowestQueueSize) {
-      lowestQueueSize = queueSize;
-      bestContainer = container;
-    }
-  }
-
-  return bestContainer;
-};
-
-const getContainersForLanguage = (language: string): string[] => {
-  switch (language) {
-    case 'python':
-      return ['python-1', 'python-2'];
-    case 'java':
-      return ['java-1', 'java-2'];
-    case 'javascript':
-      return ['javascript-1'];
-    case 'cpp':
-      return ['cpp-1'];
-    case 'go':
-      return ['go-1'];
-    default:
-      throw new Error(`Unsupported language: ${language}`);
+  for (const language of languages) {
+    const queueName = `${language}-executor`;
+    codeQueues[language] = new Queue(queueName, {
+      redis: {
+        host: process.env.REDIS_HOST || 'localhost',
+        port: parseInt(process.env.REDIS_PORT || '6379') || 6379,
+        family: 4,
+        connectTimeout: 10000
+      }
+    });
+    console.log(`Initialized queue: ${queueName}`);
   }
 };
 
@@ -159,10 +69,10 @@ app.use(cors());
 app.use(express.json({ limit: '1mb' }));
 app.set('trust proxy', 1); // Trust first proxy, important for running behind a load balancer
 
-// Rate limiting - Optimized for higher capacity (1000+ users)
+// Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200, // limit each IP to 2 requests per windowMs
+  max: 200, // limit each IP to 200 requests per windowMs
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
@@ -210,7 +120,7 @@ app.get('/health', async (req: Request, res: Response<HealthResponse>) => {
 app.get('/languages', (req: Request, res: Response<LanguagesResponse>) => {
   const languages = languageManager.getAllLanguages();
   res.json({
-    languages,
+    languages: languages.map(l => ({ name: l.name, displayName: l.displayName })),
     count: languages.length
   });
 });
@@ -219,15 +129,15 @@ app.get('/load', async (req: Request, res: Response<SystemLoadResponse>) => {
   try {
     const containerLoads: ContainerLoadInfo[] = [];
 
-    for (const [containerId, queue] of Object.entries(codeQueues)) {
+    for (const [language, queue] of Object.entries(codeQueues)) {
       const waitingCount = await queue.getWaitingCount();
       const activeCount = await queue.getActiveCount();
       const completedCount = await queue.getCompletedCount();
       const failedCount = await queue.getFailedCount();
 
       containerLoads.push({
-        containerId,
-        language: containerId.split('-')[0],
+        containerId: `${language}-executor`, // This is now a logical grouping, not a specific container
+        language,
         waiting: waitingCount,
         active: activeCount,
         completed: completedCount,
@@ -277,9 +187,7 @@ app.post('/execute', async (req: Request, res: Response<JobResult>) => {
       });
     }
 
-    // Select best container for the language
-    const selectedContainer = await selectContainer(language);
-    const selectedQueue = codeQueues[selectedContainer];
+    const selectedQueue = codeQueues[language];
 
     const jobId = uuidv4();
     const jobData: JobData = {
@@ -302,13 +210,13 @@ app.post('/execute', async (req: Request, res: Response<JobResult>) => {
       removeOnFail: 20
     });
 
-    console.log(`Job ${jobId} queued on container ${selectedContainer}`);
+    console.log(`Job ${jobId} queued on ${language}-executor queue`);
 
     return res.json({
       id: jobId,
       status: 'queued',
       timestamp: new Date().toISOString(),
-      message: `Job queued on ${selectedContainer}`
+      message: `Job queued for ${language}`
     });
 
   } catch (error) {
@@ -327,7 +235,7 @@ app.get('/job/:id', async (req: Request, res: Response<JobResult>) => {
     const { id } = req.params;
 
     // Search across all queues for the job
-    for (const [containerId, queue] of Object.entries(codeQueues)) {
+    for (const [_language, queue] of Object.entries(codeQueues)) {
       const job = await queue.getJob(id);
 
       if (job) {
@@ -396,21 +304,12 @@ const startServer = async () => {
     await redisClient.connect();
     console.log('Connected to Redis');
 
-    // Load language configurations
-    await languageManager.loadLanguages();
-    console.log('Loaded language configurations');
-
-    initializeQueues();
-    console.log('Initialized job queues for all language containers');
+    // Initialize queues dynamically
+    await initializeQueues();
+    console.log('Initialized job queues for all supported languages.');
 
     server = app.listen(port, () => {
       console.log(`Master server running on port ${port}`);
-      console.log('Container architecture:');
-      console.log('- Python: 2 containers (load balanced)');
-      console.log('- Java: 2 containers (load balanced)');
-      console.log('- JavaScript: 1 container');
-      console.log('- C++: 1 container');
-      console.log('- Go: 1 container');
     });
   } catch (error) {
     console.error('Failed to start server:', error);
@@ -423,8 +322,8 @@ const gracefulShutdown = () => {
   server.close(() => {
     console.log('HTTP server closed.');
     redisClient.quit().then(() => {
-        console.log('Redis client disconnected.');
-        process.exit(0);
+      console.log('Redis client disconnected.');
+      process.exit(0);
     });
   });
 };

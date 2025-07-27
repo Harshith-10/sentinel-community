@@ -10,7 +10,7 @@ npm run docker:push
 
 # 3. Deploy to Kubernetes
 Write-Host "Deploying to Kubernetes..."
-kubectl apply -f k8s/
+npm run k8s:apply
 
 # 4. Access the Service
 Write-Host "Getting the external IP for the service..."

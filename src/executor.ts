@@ -226,9 +226,11 @@ function runCommand(
       }
     });
 
-    // Send input if provided
-    if (input && process.stdin) {
-      process.stdin.write(input);
+    // Send input if provided and close stdin
+    if (process.stdin) {
+      if (input) {
+        process.stdin.write(input);
+      }
       process.stdin.end();
     }
   });

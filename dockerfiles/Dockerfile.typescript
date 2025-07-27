@@ -1,15 +1,15 @@
-# --- Executor for Java ---
+# --- Executor for TypeScript ---
 
 # Use the pre-built application image as a builder stage
 FROM harshithd/sentinel-app-builder:latest AS builder
 
 # Production Stage
-FROM eclipse-temurin:21-alpine
+FROM node:22-alpine
 
 # Install Node.js for the executor runtime.
 # This command might need to be changed based on the base image's package manager (e.g., apt-get, yum).
 RUN apk add --no-cache nodejs npm
-
+RUN npm install -g typescript
 
 WORKDIR /usr/src/app
 

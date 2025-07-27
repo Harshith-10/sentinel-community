@@ -19,6 +19,7 @@ interface LanguageDetails {
   };
   filename?: string;
   dockerImage: string; // e.g., 'python:3.11-alpine'
+  dockerfileSetupCommands?: string[]; // New field for extra Dockerfile commands
   k8s: {
     replicas: number;
     cpu: string;
@@ -33,7 +34,6 @@ const TEMPLATES_DIR = path.join(ROOT_DIR, 'templates');
 const DOCKERFILES_DIR = path.join(ROOT_DIR, 'dockerfiles');
 const K8S_DIR = path.join(ROOT_DIR, 'k8s');
 const LANG_CONFIG_DIR = path.join(ROOT_DIR, 'config', 'languages');
-const DOCKER_COMPOSE_PATH = path.join(ROOT_DIR, 'docker-compose.yml');
 const PACKAGE_JSON_PATH = path.join(ROOT_DIR, 'package.json');
 
 // --- Helper Functions ---
@@ -60,10 +60,13 @@ async function loadTemplate(name: string): Promise<string> {
 }
 
 function replacePlaceholders(template: string, lang: LanguageDetails): string {
+  const setupCommands = (lang.dockerfileSetupCommands || []).map(cmd => `RUN ${cmd}`).join('\n');
+
   return template
     .replace(/{{languageName}}/g, lang.name)
     .replace(/{{displayName}}/g, lang.displayName)
     .replace(/{{dockerImage}}/g, lang.dockerImage)
+    .replace(/{{dockerfileSetupCommands}}/g, setupCommands)
     .replace(/{{k8sReplicas}}/g, String(lang.k8s.replicas))
     .replace(/{{k8sCpu}}/g, lang.k8s.cpu)
     .replace(/{{k8sMemory}}/g, lang.k8s.memory);
@@ -83,7 +86,7 @@ async function regenerateAll() {
     console.log(`  - Processing ${chalk.yellow(lang.displayName)}...`);
 
     // Language Config
-    const { k8s, dockerImage, ...langConfig } = lang;
+    const { k8s, dockerImage, dockerfileSetupCommands, ...langConfig } = lang;
     await fs.writeFile(
       path.join(LANG_CONFIG_DIR, `${lang.name}.json`),
       JSON.stringify(langConfig, null, 2)
@@ -105,25 +108,34 @@ async function regenerateAll() {
     await fs.writeFile(path.join(K8S_DIR, `keda-${lang.name}.yaml`), k8sKedaContent);
   }
 
-  // 2. Generate Docker Compose
-  const dockerComposeBase = await loadTemplate('docker-compose.base.yaml');
-  const dockerComposeServiceTemplate = await loadTemplate('docker-compose.service.template.yaml');
-  let services = '';
-  for (const lang of languages) {
-    services += replacePlaceholders(dockerComposeServiceTemplate, lang);
-  }
-  await fs.writeFile(DOCKER_COMPOSE_PATH, dockerComposeBase + services);
-
-  // 3. Update package.json scripts
+  // 2. Update package.json scripts
   const packageJson = JSON.parse(await fs.readFile(PACKAGE_JSON_PATH, 'utf-8'));
-  const buildCommands = languages.map(
-    l => `docker build -t your-repo/sentinel-executor-${l.name}:latest -f dockerfiles/Dockerfile.${l.name} .`
+
+  const DOCKER_REPO_MATCH = (packageJson.scripts['docker:build'] || '').match(/docker build -t (.*?)\/sentinel-master:latest/);
+  const DOCKER_REPO = DOCKER_REPO_MATCH ? DOCKER_REPO_MATCH[1] : 'harshithd';
+
+  const builderBuildCommand = `docker build -t ${DOCKER_REPO}/sentinel-app-builder:latest -f Dockerfile.build .`;
+  const masterBuildCommand = `docker build -t ${DOCKER_REPO}/sentinel-master:latest -f Dockerfile.master .`;
+
+  const executorBuildCommands = languages.map(
+    l => `docker build -t ${DOCKER_REPO}/sentinel-executor-${l.name}:latest -f dockerfiles/Dockerfile.${l.name} .`
   );
-  const pushCommands = languages.map(
-    l => `docker push your-repo/sentinel-executor-${l.name}:latest`
+
+  const builderPushCommand = `docker push ${DOCKER_REPO}/sentinel-app-builder:latest`;
+  const masterPushCommand = `docker push ${DOCKER_REPO}/sentinel-master:latest`;
+
+  const executorPushCommands = languages.map(
+    l => `docker push ${DOCKER_REPO}/sentinel-executor-${l.name}:latest`
   );
-  packageJson.scripts['docker:build:executors'] = buildCommands.join(' && ');
-  packageJson.scripts['docker:push:executors'] = pushCommands.join(' && ');
+
+  packageJson.scripts['docker:build'] = [builderBuildCommand, masterBuildCommand, ...executorBuildCommands].join(' && ');
+  packageJson.scripts['docker:push'] = [builderPushCommand, masterPushCommand, ...executorPushCommands].join(' && ');
+
+  // Remove old/unused scripts
+  delete packageJson.scripts['docker:build:executors'];
+  delete packageJson.scripts['docker:push:executors'];
+  delete packageJson.scripts['docker:run'];
+
   await fs.writeFile(PACKAGE_JSON_PATH, JSON.stringify(packageJson, null, 2));
 
   console.log(chalk.green.bold('✅ All files regenerated successfully!'));
@@ -145,6 +157,17 @@ async function addLanguage() {
     { name: 'argsStr', message: "Execution Arguments, comma-separated (e.g., '{file}')", default: '{file}' },
     { name: 'dockerImage', message: "Docker Base Image (e.g., 'ruby:3.2-alpine')", default: 'ruby:3.2-alpine' },
     { name: 'timeout', message: 'Execution timeout (ms):', default: 30000, type: 'number' },
+    {
+      name: 'hasSetupCommands',
+      type: 'confirm',
+      message: 'Does this language require any additional RUN commands in its Dockerfile (e.g., for global package installation)?',
+      default: false
+    },
+    {
+      name: 'dockerfileSetupCommandsStr',
+      message: 'Enter the setup commands, comma-separated (e.g., "npm install -g typescript,some-other-command")',
+      when: (ans) => ans.hasSetupCommands,
+    },
     { name: 'isCompiled', type: 'confirm', message: 'Is this a compiled language?', default: false },
     {
       name: 'compileTimeout',
@@ -195,6 +218,10 @@ async function addLanguage() {
       memory: answers.k8sMemory,
     },
   };
+
+  if (answers.hasSetupCommands && answers.dockerfileSetupCommandsStr) {
+    newLang.dockerfileSetupCommands = answers.dockerfileSetupCommandsStr.split(',').map((s: string) => s.trim());
+  }
 
   if (answers.isCompiled) {
     newLang.compile = {

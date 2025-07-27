@@ -1,24 +1,15 @@
 # --- Executor for Python ---
 
-# Builder Stage
-FROM node:22-alpine AS builder
-WORKDIR /usr/src/app
-COPY package*.json ./
-COPY tsconfig.json ./
-RUN npm ci
-COPY src/ ./src/
-COPY config/ ./config/
-RUN npm run build
+# Use the pre-built application image as a builder stage
+FROM harshithd/sentinel-app-builder:latest AS builder
 
 # Production Stage
 FROM python:3.11-alpine
 
 # Install Node.js for the executor runtime.
 # This command might need to be changed based on the base image's package manager (e.g., apt-get, yum).
-RUN if command -v apk &> /dev/null; then apk add --no-cache nodejs npm; \
-    elif command -v apt-get &> /dev/null; then apt-get update && apt-get install -y nodejs npm; \
-    elif command -v yum &> /dev/null; then yum install -y nodejs npm; \
-    else echo "Warning: Could not detect package manager. Node.js may need to be installed manually." >&2; fi
+RUN apk add --no-cache nodejs npm
+
 
 WORKDIR /usr/src/app
 
@@ -37,4 +28,4 @@ RUN chown -R executor:executor /tmp/code-execution
 
 USER executor
 
-CMD ["npm", "run", "start:executor"]
+CMD ["sh", "-c", "ulimit -u 100 && npm run start:executor"]

@@ -12,10 +12,20 @@ spec:
       labels:
         app: python-executor
     spec:
+      runtimeClassName: gvisor
+      securityContext:
+        seccompProfile:
+          type: Localhost
+          localhostProfile: seccomp-profile.json
       containers:
       - name: python-executor
         image: harshithd/sentinel-executor-python:latest
         imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
         env:
         - name: REDIS_HOST
           value: "redis"
@@ -29,8 +39,8 @@ spec:
               fieldPath: metadata.name
         resources:
           requests:
-            cpu: "1"
-            memory: "1Gi"
+            cpu: "500m"
+            memory: "256Mi"
           limits:
-            cpu: "1"
-            memory: "1Gi"
+            cpu: "500m"
+            memory: "256Mi"

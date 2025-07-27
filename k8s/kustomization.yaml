@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - redis-deployment.yaml
+  - master-deployment.yaml
+  - network-policy.yaml
+  - executor-cpp.yaml
+  - executor-java.yaml
+  - executor-javascript.yaml
+  - executor-python.yaml
+  - executor-typescript.yaml
+  - keda-cpp.yaml
+  - keda-java.yaml
+  - keda-javascript.yaml
+  - keda-python.yaml
+  - keda-typescript.yaml

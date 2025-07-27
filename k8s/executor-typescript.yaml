@@ -1,28 +1,38 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: rust-executor
+  name: typescript-executor
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: rust-executor
+      app: typescript-executor
   template:
     metadata:
       labels:
-        app: rust-executor
+        app: typescript-executor
     spec:
+      runtimeClassName: gvisor
+      securityContext:
+        seccompProfile:
+          type: Localhost
+          localhostProfile: seccomp-profile.json
       containers:
-      - name: rust-executor
-        image: harshithd/sentinel-executor-rust:latest
+      - name: typescript-executor
+        image: harshithd/sentinel-executor-typescript:latest
         imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
         env:
         - name: REDIS_HOST
           value: "redis"
         - name: REDIS_PORT
           value: "6379"
         - name: LANGUAGE
-          value: "rust"
+          value: "typescript"
         - name: EXECUTOR_ID
           valueFrom:
             fieldRef:
@@ -30,7 +40,7 @@ spec:
         resources:
           requests:
             cpu: "500m"
-            memory: "512Mi"
+            memory: "256Mi"
           limits:
             cpu: "500m"
-            memory: "512Mi"
+            memory: "256Mi"

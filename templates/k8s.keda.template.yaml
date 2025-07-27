@@ -8,10 +8,10 @@ spec:
   pollingInterval: 15
   cooldownPeriod:  30
   minReplicaCount: 1
-  maxReplicaCount: 10
+  maxReplicaCount: 15
   triggers:
   - type: redis
     metadata:
       address: redis:6379
-      listName: bull:{{languageName}}-executor-1:wait # Adjust if your queue naming is different
+      listName: bull:{{languageName}}-executor:wait
       listLength: "5"

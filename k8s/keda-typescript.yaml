@@ -1,17 +1,17 @@
 apiVersion: keda.sh/v1alpha1
 kind: ScaledObject
 metadata:
-  name: go-executor-scaler
+  name: typescript-executor-scaler
 spec:
   scaleTargetRef:
-    name: go-executor
+    name: typescript-executor
   pollingInterval: 15
   cooldownPeriod:  30
   minReplicaCount: 1
-  maxReplicaCount: 10
+  maxReplicaCount: 15
   triggers:
   - type: redis
     metadata:
       address: redis:6379
-      listName: bull:go-executor-1:wait # Adjust if your queue naming is different
+      listName: bull:typescript-executor:wait
       listLength: "5"

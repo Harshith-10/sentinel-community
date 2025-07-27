@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: java-executor
 spec:
-  replicas: 2
+  replicas: 4
   selector:
     matchLabels:
       app: java-executor
@@ -12,10 +12,20 @@ spec:
       labels:
         app: java-executor
     spec:
+      runtimeClassName: gvisor
+      securityContext:
+        seccompProfile:
+          type: Localhost
+          localhostProfile: seccomp-profile.json
       containers:
       - name: java-executor
         image: harshithd/sentinel-executor-java:latest
         imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
         env:
         - name: REDIS_HOST
           value: "redis"
@@ -29,8 +39,8 @@ spec:
               fieldPath: metadata.name
         resources:
           requests:
-            cpu: "1"
-            memory: "1Gi"
+            cpu: "500m"
+            memory: "256Mi"
           limits:
-            cpu: "1"
-            memory: "1Gi"
+            cpu: "500m"
+            memory: "256Mi"

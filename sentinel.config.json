@@ -16,27 +16,13 @@
       "timeout": 10000
     },
     "dockerImage": "alpine:3.22",
-    "k8s": {
-      "replicas": 2,
-      "cpu": "1",
-      "memory": "1Gi"
-    }
-  },
-  {
-    "name": "go",
-    "displayName": "Go",
-    "extension": ".go",
-    "command": "go",
-    "args": [
-      "run",
-      "{file}"
+    "dockerfileSetupCommands": [
+      "apk add --no-cache g++ make"
     ],
-    "timeout": 30000,
-    "dockerImage": "golang:1.24-alpine",
     "k8s": {
-      "replicas": 2,
-      "cpu": "1",
-      "memory": "1Gi"
+      "replicas": 1,
+      "cpu": "500m",
+      "memory": "256Mi"
     }
   },
   {
@@ -60,9 +46,9 @@
     "filename": "Main.java",
     "dockerImage": "eclipse-temurin:21-alpine",
     "k8s": {
-      "replicas": 2,
-      "cpu": "1",
-      "memory": "1Gi"
+      "replicas": 4,
+      "cpu": "500m",
+      "memory": "256Mi"
     }
   },
   {
@@ -76,9 +62,9 @@
     "timeout": 30000,
     "dockerImage": "node:22-alpine",
     "k8s": {
-      "replicas": 2,
-      "cpu": "1",
-      "memory": "1Gi"
+      "replicas": 1,
+      "cpu": "500m",
+      "memory": "256Mi"
     }
   },
   {
@@ -93,33 +79,41 @@
     "dockerImage": "python:3.11-alpine",
     "k8s": {
       "replicas": 2,
-      "cpu": "1",
-      "memory": "1Gi"
+      "cpu": "500m",
+      "memory": "256Mi"
     }
   },
   {
-    "name": "rust",
-    "displayName": "Rust",
-    "extension": ".rs",
-    "command": "./program",
+    "name": "typescript",
+    "displayName": "TypeScript",
+    "extension": ".ts",
+    "command": "node",
     "args": [
-      "{file}"
+      "dist/main.js"
     ],
-    "dockerImage": "rust:1.88-alpine",
+    "timeout": 30000,
+    "dockerImage": "node:22-alpine",
     "k8s": {
       "replicas": 1,
       "cpu": "500m",
-      "memory": "512Mi"
+      "memory": "256Mi"
     },
-    "timeout": 30000,
+    "dockerfileSetupCommands": [
+      "npm install -g typescript"
+    ],
     "compile": {
-      "command": "rustc",
+      "timeout": 10000,
+      "command": "tsc",
       "args": [
-        "main.rs",
-        "-o",
-        "program"
-      ],
-      "timeout": 10000
+        "{file}",
+        "--outDir",
+        "dist",
+        "--target",
+        "es2020",
+        "--module",
+        "commonJs",
+        "--esModuleInterop"
+      ]
     }
   }
 ]

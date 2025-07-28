@@ -198,7 +198,7 @@ Adding a new language is simple and does not require modifying the core applicat
   - **Container Security**: Executors run as a non-root user inside minimal Docker containers.
   - **Resource Limits**: Kubernetes deployments have CPU and memory limits to prevent resource exhaustion.
   - **Network Policies**: It is highly recommended to implement Kubernetes NetworkPolicies to restrict communication between pods, allowing executors to only talk to Redis.
-  - **Sandboxing Runtimes**: For enhanced security in a multi-tenant production environment, consider using sandboxed container runtimes like **gVisor** or **Kata Containers**.
+  - **Sandboxing Runtimes**: For enhanced security in a multi-tenant production environment, consider using sandboxed container runtimes like **Kata Containers**.
   - **Secrets Management**: Use Kubernetes Secrets for storing sensitive information like registry credentials or Redis passwords.
 
 ## 📄 License

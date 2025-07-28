@@ -4,6 +4,7 @@ resources:
   - redis-deployment.yaml
   - master-deployment.yaml
   - network-policy.yaml
+  - seccomp-profile.yaml
   - executor-cpp.yaml
   - executor-java.yaml
   - executor-javascript.yaml

@@ -12,11 +12,9 @@ spec:
       labels:
         app: cpp-executor
     spec:
-      runtimeClassName: gvisor
       securityContext:
         seccompProfile:
-          type: Localhost
-          localhostProfile: seccomp-profile.json
+          type: RuntimeDefault
       containers:
       - name: cpp-executor
         image: harshithd/sentinel-executor-cpp:latest

@@ -9,6 +9,10 @@ Write-Host "Pushing Docker images to the registry..."
 npm run docker:push
 
 # 3. Deploy to Kubernetes
+Write-Host "Deleting any existing deployments..."
+npm run k8s:delete
+
+# 3. Deploy to Kubernetes
 Write-Host "Deploying to Kubernetes..."
 npm run k8s:apply
 

@@ -12,11 +12,9 @@ spec:
       labels:
         app: java-executor
     spec:
-      runtimeClassName: gvisor
       securityContext:
         seccompProfile:
-          type: Localhost
-          localhostProfile: seccomp-profile.json
+          type: RuntimeDefault
       containers:
       - name: java-executor
         image: harshithd/sentinel-executor-java:latest

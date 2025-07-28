@@ -28,4 +28,4 @@ RUN chown -R executor:executor /tmp/code-execution
 
 USER executor
 
-CMD ["sh", "-c", "ulimit -u 100 && npm run start:executor"]
+CMD ["sh", "-c", "ulimit -u 1000 && npm run start:executor"]

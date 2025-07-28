@@ -12,11 +12,9 @@ spec:
       labels:
         app: python-executor
     spec:
-      runtimeClassName: gvisor
       securityContext:
         seccompProfile:
-          type: Localhost
-          localhostProfile: seccomp-profile.json
+          type: RuntimeDefault
       containers:
       - name: python-executor
         image: harshithd/sentinel-executor-python:latest

@@ -4,7 +4,7 @@
   "description": "Sentinel - An RCE Service",
   "main": "dist/server.js",
   "scripts": {
-    "deploy": "powershell ./scripts/deploy.ps1",
+    "deploy": "./scripts/deploy.sh",
     "build": "tsc",
     "start": "node dist/server.js",
     "start:master": "node dist/master.js",
@@ -19,8 +19,8 @@
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
     "test:architecture": "node test-architecture.js",
-    "docker:build": "docker build -t harshithd/sentinel-app-builder:latest -f Dockerfile.build . && docker build -t harshithd/sentinel-app-builder:latest -f Dockerfile.build . && docker build -t harshithd/sentinel-app-builder:latest -f Dockerfile.build . && docker build -t harshithd/sentinel-master:latest -f Dockerfile.master . && docker build -t harshithd/sentinel-app-builder:latest -f Dockerfile.build . && docker build -t harshithd/sentinel-executor-cpp:latest -f dockerfiles/Dockerfile.cpp . && docker build -t harshithd/sentinel-app-builder:latest -f Dockerfile.build . && docker build -t harshithd/sentinel-executor-java:latest -f dockerfiles/Dockerfile.java . && docker build -t harshithd/sentinel-app-builder:latest -f Dockerfile.build . && docker build -t harshithd/sentinel-executor-javascript:latest -f dockerfiles/Dockerfile.javascript . && docker build -t harshithd/sentinel-app-builder:latest -f Dockerfile.build . && docker build -t harshithd/sentinel-executor-python:latest -f dockerfiles/Dockerfile.python . && docker build -t harshithd/sentinel-app-builder:latest -f Dockerfile.build . && docker build -t harshithd/sentinel-executor-typescript:latest -f dockerfiles/Dockerfile.typescript .",
-    "docker:push": "docker push harshithd/sentinel-app-builder:latest -f Dockerfile.build . && docker build -t harshithd/sentinel-app-builder:latest && docker push harshithd/sentinel-app-builder:latest -f Dockerfile.build . && docker build -t harshithd/sentinel-master:latest && docker push harshithd/sentinel-app-builder:latest -f Dockerfile.build . && docker build -t harshithd/sentinel-executor-cpp:latest && docker push harshithd/sentinel-app-builder:latest -f Dockerfile.build . && docker build -t harshithd/sentinel-executor-java:latest && docker push harshithd/sentinel-app-builder:latest -f Dockerfile.build . && docker build -t harshithd/sentinel-executor-javascript:latest && docker push harshithd/sentinel-app-builder:latest -f Dockerfile.build . && docker build -t harshithd/sentinel-executor-python:latest && docker push harshithd/sentinel-app-builder:latest -f Dockerfile.build . && docker build -t harshithd/sentinel-executor-typescript:latest"
+    "docker:build": "docker build -t harshithd/sentinel-app-builder:latest -f Dockerfile.build . && docker build -t harshithd/sentinel-master:latest -f Dockerfile.master . && docker build -t harshithd/sentinel-executor-cpp:latest -f dockerfiles/Dockerfile.cpp . && docker build -t harshithd/sentinel-executor-java:latest -f dockerfiles/Dockerfile.java . && docker build -t harshithd/sentinel-executor-javascript:latest -f dockerfiles/Dockerfile.javascript . && docker build -t harshithd/sentinel-executor-python:latest -f dockerfiles/Dockerfile.python . && docker build -t harshithd/sentinel-executor-typescript:latest -f dockerfiles/Dockerfile.typescript .",
+    "docker:push": "docker push harshithd/sentinel-app-builder:latest && docker push harshithd/sentinel-master:latest && docker push harshithd/sentinel-executor-cpp:latest && docker push harshithd/sentinel-executor-java:latest && docker push harshithd/sentinel-executor-javascript:latest && docker push harshithd/sentinel-executor-python:latest && docker push harshithd/sentinel-executor-typescript:latest"
   },
   "dependencies": {
     "@types/inquirer": "^8.2.11",

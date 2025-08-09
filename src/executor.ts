@@ -1,5 +1,6 @@
 import { spawn, ChildProcess } from 'child_process';
 import { promises as fs } from 'fs';
+import crypto from 'crypto';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import languageManager from './languageManager';
@@ -8,6 +9,43 @@ import { ExecutionResult, CommandResult, LanguageConfig, TestCase, TestCaseResul
 // Use platform-appropriate temp directory
 const TEMP_DIR = process.platform === 'win32' ? 'C:\\temp\\code-execution' : '/tmp/code-execution';
 const MAX_OUTPUT_SIZE = 1024 * 1024; // 1MB
+const CACHE_DIR = process.platform === 'win32' ? 'C:\\temp\\sentinel-cache' : '/tmp/sentinel-cache';
+
+async function ensureDir(dir: string): Promise<void> {
+  await fs.mkdir(dir, { recursive: true });
+}
+
+function hashContent(content: string, salt: string): string {
+  return crypto.createHash('sha256').update(salt + '\n' + content).digest('hex');
+}
+
+async function copyFile(src: string, dest: string): Promise<void> {
+  await ensureDir(path.dirname(dest));
+  await fs.copyFile(src, dest);
+}
+
+async function copyDir(srcDir: string, destDir: string): Promise<void> {
+  await ensureDir(destDir);
+  const entries = await fs.readdir(srcDir, { withFileTypes: true });
+  for (const entry of entries) {
+    const srcPath = path.join(srcDir, entry.name);
+    const destPath = path.join(destDir, entry.name);
+    if (entry.isDirectory()) {
+      await copyDir(srcPath, destPath);
+    } else if (entry.isFile()) {
+      await copyFile(srcPath, destPath);
+    }
+  }
+}
+
+async function pathExists(p: string): Promise<boolean> {
+  try {
+    await fs.stat(p);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 export async function executeCode(code: string, language: string, input = '', testCases?: TestCase[]): Promise<ExecutionResult> {
   const startTime = Date.now();
@@ -30,30 +68,93 @@ export async function executeCode(code: string, language: string, input = '', te
     const filepath = path.join(sessionDir, filename);
     await fs.writeFile(filepath, code);
     
-    // Compile if needed
+    // Compile if needed with caching for compiled languages
     if (langConfig.compile) {
-      const compileArgs = langConfig.compile.args.map(arg => 
-        arg.replace('{file}', filepath)
-           .replace('{dir}', sessionDir)
-           .replace('{filename}', filename)
-      );
-      
-      const compileResult = await runCommand(
-        langConfig.compile.command,
-        compileArgs,
-        sessionDir,
-        '',
-        langConfig.compile.timeout || 10000
-      );
+      // Try to ensure cache dir; failures should not break execution
+      try { await ensureDir(CACHE_DIR); } catch { /* ignore */ }
+      const cacheKey = hashContent(code, `${langConfig.name}:${langConfig.compile.command}:${langConfig.compile.args.join(' ')}`);
+      const langCacheDir = path.join(CACHE_DIR, langConfig.name, cacheKey);
 
-      // Check if compilation failed
-      if (compileResult.exitCode !== 0) {
-        return {
-          output: '',
-          error: `Compilation failed: ${compileResult.stderr || compileResult.stdout}`,
-          executionTime: Date.now() - startTime,
-          status: 'error'
-        };
+      let cacheHit = false;
+
+      // Try cache hit per language
+      if (langConfig.name === 'cpp') {
+        const cachedBin = path.join(langCacheDir, 'program');
+        if (await pathExists(cachedBin)) {
+          await copyFile(cachedBin, path.join(sessionDir, 'program'));
+          cacheHit = true;
+        }
+      } else if (langConfig.name === 'java') {
+        // Expect compiled .class files cached directly under langCacheDir
+        if (await pathExists(langCacheDir)) {
+          // Heuristic: Main.class should exist
+          const mainClass = path.join(langCacheDir, 'Main.class');
+          if (await pathExists(mainClass)) {
+            await copyDir(langCacheDir, sessionDir);
+            cacheHit = true;
+          }
+        }
+      } else if (langConfig.name === 'typescript') {
+        const cachedDist = path.join(langCacheDir, 'dist');
+        if (await pathExists(path.join(cachedDist, 'main.js'))) {
+          await copyDir(cachedDist, path.join(sessionDir, 'dist'));
+          cacheHit = true;
+        }
+      }
+
+      if (!cacheHit) {
+        const compileArgs = langConfig.compile.args.map(arg => 
+          arg.replace('{file}', filepath)
+             .replace('{dir}', sessionDir)
+             .replace('{filename}', filename)
+        );
+        
+        const compileResult = await runCommand(
+          langConfig.compile.command,
+          compileArgs,
+          sessionDir,
+          '',
+          langConfig.compile.timeout || 10000
+        );
+
+        // Check if compilation failed
+        if (compileResult.exitCode !== 0) {
+          return {
+            output: '',
+            error: `Compilation failed: ${compileResult.stderr || compileResult.stdout}`,
+            executionTime: Date.now() - startTime,
+            status: 'error'
+          };
+        }
+
+        // Save artifacts to cache
+        try { await ensureDir(langCacheDir); } catch { /* ignore */ }
+        if (langConfig.name === 'cpp') {
+          const bin = path.join(sessionDir, 'program');
+          try {
+            if (await pathExists(bin)) {
+              await copyFile(bin, path.join(langCacheDir, 'program'));
+            }
+          } catch { /* ignore cache write errors */ }
+        } else if (langConfig.name === 'java') {
+          // Copy all .class files
+          try {
+            const entries = await fs.readdir(sessionDir);
+            await ensureDir(langCacheDir);
+            for (const name of entries) {
+              if (name.endsWith('.class')) {
+                await copyFile(path.join(sessionDir, name), path.join(langCacheDir, name));
+              }
+            }
+          } catch { /* ignore cache write errors */ }
+        } else if (langConfig.name === 'typescript') {
+          const distDir = path.join(sessionDir, 'dist');
+          try {
+            if (await pathExists(distDir)) {
+              await copyDir(distDir, path.join(langCacheDir, 'dist'));
+            }
+          } catch { /* ignore cache write errors */ }
+        }
       }
     }
     
@@ -118,7 +219,7 @@ export async function executeCode(code: string, language: string, input = '', te
     }
     
     // Execute code with single input (backward compatibility)
-    const executeArgs = langConfig.args.map(arg => 
+  const executeArgs = langConfig.args.map(arg => 
       arg.replace('{file}', filepath)
          .replace('{dir}', sessionDir)
          .replace('{filename}', filename)
@@ -172,7 +273,8 @@ function runCommand(
     const process: ChildProcess = spawn(command, args, {
       cwd,
       stdio: ['pipe', 'pipe', 'pipe'],
-      timeout
+      timeout,
+      windowsHide: true
     });
 
     let stdout = '';
@@ -187,7 +289,7 @@ function runCommand(
     }, timeout);
 
     // Handle stdout
-    process.stdout?.on('data', (data: Buffer) => {
+  process.stdout?.on('data', (data: Buffer) => {
       stdout += data.toString();
       if (stdout.length > MAX_OUTPUT_SIZE) {
         killed = true;
@@ -197,7 +299,7 @@ function runCommand(
     });
 
     // Handle stderr
-    process.stderr?.on('data', (data: Buffer) => {
+  process.stderr?.on('data', (data: Buffer) => {
       stderr += data.toString();
       if (stderr.length > MAX_OUTPUT_SIZE) {
         killed = true;

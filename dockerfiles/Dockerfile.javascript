@@ -6,10 +6,6 @@ FROM harshithd/sentinel-app-builder:latest AS builder
 # Production Stage
 FROM node:22-alpine
 
-# Install Node.js for the executor runtime.
-# This command might need to be changed based on the base image's package manager (e.g., apt-get, yum).
-RUN apk add --no-cache nodejs npm
-
 
 WORKDIR /usr/src/app
 
@@ -20,11 +16,12 @@ COPY --from=builder /usr/src/app/dist ./dist/
 COPY --from=builder /usr/src/app/config ./config/
 
 RUN mkdir -p /tmp/code-execution
+RUN mkdir -p /tmp/sentinel-cache
 
 # Create a non-root user for security
 RUN addgroup -g 1001 -S executor && adduser -S executor -u 1001
 
-RUN chown -R executor:executor /tmp/code-execution
+RUN chown -R executor:executor /tmp/code-execution /tmp/sentinel-cache
 
 USER executor
 

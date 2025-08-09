@@ -45,8 +45,9 @@ const codeQueue = new Queue(queueName, {
   }
 });
 
-// Process jobs
-codeQueue.process('execute', async (job) => {
+// Process jobs with configurable concurrency
+const CONCURRENCY = parseInt(process.env.CONCURRENCY || '1', 10);
+codeQueue.process('execute', CONCURRENCY, async (job) => {
   const { id, code, language: jobLanguage, input, testCases }: JobData = job.data;
 
   console.log(`Executor for ${language}: Processing job ${id}`);

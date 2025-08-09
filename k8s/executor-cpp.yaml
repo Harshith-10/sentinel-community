@@ -18,7 +18,7 @@ spec:
       containers:
       - name: cpp-executor
         image: harshithd/sentinel-executor-cpp:latest
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -31,6 +31,8 @@ spec:
           value: "6379"
         - name: LANGUAGE
           value: "cpp"
+        - name: CONCURRENCY
+          value: "1"
         - name: EXECUTOR_ID
           valueFrom:
             fieldRef:

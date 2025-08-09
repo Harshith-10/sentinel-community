@@ -22,6 +22,6 @@ npm run k8s:apply
 
 # 5. Access the Service
 echo "Getting the external IP for the service..."
-kubectl get services sentinel-master-service
+microk8s.kubectl get services sentinel-master-service
 
 echo "Deployment complete! You can now access the API at the EXTERNAL-IP of the sentinel-master-service."

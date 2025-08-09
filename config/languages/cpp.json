@@ -8,6 +8,9 @@
   "compile": {
     "command": "g++",
     "args": [
+      "-O2",
+      "-pipe",
+      "-s",
       "{file}",
       "-o",
       "program"

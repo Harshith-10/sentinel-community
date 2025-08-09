@@ -18,7 +18,7 @@ spec:
       containers:
       - name: java-executor
         image: harshithd/sentinel-executor-java:latest
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -31,6 +31,8 @@ spec:
           value: "6379"
         - name: LANGUAGE
           value: "java"
+        - name: CONCURRENCY
+          value: "2"
         - name: EXECUTOR_ID
           valueFrom:
             fieldRef:

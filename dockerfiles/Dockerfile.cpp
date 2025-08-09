@@ -20,11 +20,12 @@ COPY --from=builder /usr/src/app/dist ./dist/
 COPY --from=builder /usr/src/app/config ./config/
 
 RUN mkdir -p /tmp/code-execution
+RUN mkdir -p /tmp/sentinel-cache
 
 # Create a non-root user for security
 RUN addgroup -g 1001 -S executor && adduser -S executor -u 1001
 
-RUN chown -R executor:executor /tmp/code-execution
+RUN chown -R executor:executor /tmp/code-execution /tmp/sentinel-cache
 
 USER executor
 

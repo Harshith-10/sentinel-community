@@ -38,7 +38,7 @@ class LanguageManager {
   }
 
   private validateLanguageConfig(config: any): config is LanguageConfig {
-    const required = ['name', 'displayName', 'extension', 'command', 'args', 'timeout'];
+  const required = ['name', 'displayName', 'extension', 'command', 'args', 'timeout'];
     return required.every(field => config && typeof config === 'object' && field in config);
   }
 

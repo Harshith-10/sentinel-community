@@ -4,6 +4,12 @@
   "extension": ".java",
   "command": "java",
   "args": [
+    "-XX:+UseSerialGC",
+    "-XX:TieredStopAtLevel=1",
+    "-XX:CICompilerCount=1",
+    "-Djava.security.egd=file:/dev/./urandom",
+    "-Xms16m",
+    "-Xmx128m",
     "-cp",
     "{dir}",
     "Main"
@@ -12,6 +18,8 @@
   "compile": {
     "command": "javac",
     "args": [
+      "-d",
+      "{dir}",
       "{file}"
     ],
     "timeout": 10000

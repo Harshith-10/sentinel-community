@@ -17,7 +17,7 @@ spec:
           type: RuntimeDefault
       containers:
       - name: python-executor
-        image: harshithd/sentinel-executor-python:latest
+        image: maximus5479/sentinel-executor-python:latest
         imagePullPolicy: Always
         securityContext:
           allowPrivilegeEscalation: false

@@ -1,7 +1,7 @@
 # --- Executor for C++ ---
 
 # Use the pre-built application image as a builder stage
-FROM harshithd/sentinel-app-builder:latest AS builder
+FROM maximus5479/sentinel-app-builder:latest AS builder
 
 # Production Stage
 FROM alpine:3.22

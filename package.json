@@ -4,7 +4,7 @@
   "description": "Sentinel - An RCE Service",
   "main": "dist/server.js",
   "scripts": {
-    "deploy": "./scripts/deploy.sh",
+    "deploy": "powershell ./scripts/deploy.ps1",
     "build": "tsc",
     "start": "node dist/server.js",
     "start:master": "node dist/master.js",
@@ -14,14 +14,14 @@
     "dev:executor": "ts-node-dev --respawn --transpile-only src/executor-worker.ts",
     "dev:watch": "tsc --watch",
     "manage": "ts-node scripts/manage-sentinel.ts",
-    "k8s:delete": "microk8s.kubectl delete -k k8s/",
-    "k8s:apply": "microk8s.kubectl apply -k k8s/",
-    "k8s:pf": "microk8s.kubectl port-forward service/sentinel-master-service 8910:8910",
+    "k8s:delete": "kubectl delete -k k8s/",
+    "k8s:apply": "kubectl apply -k k8s/",
+    "k8s:pf": "kubectl port-forward service/sentinel-master-service 8910:8910",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
     "test:architecture": "node test-architecture.js",
-    "docker:build": "docker build -t harshithd/sentinel-app-builder:latest -f Dockerfile.build . && docker build -t harshithd/sentinel-master:latest -f Dockerfile.master . && docker build -t harshithd/sentinel-executor-cpp:latest -f dockerfiles/Dockerfile.cpp . && docker build -t harshithd/sentinel-executor-java:latest -f dockerfiles/Dockerfile.java . && docker build -t harshithd/sentinel-executor-javascript:latest -f dockerfiles/Dockerfile.javascript . && docker build -t harshithd/sentinel-executor-python:latest -f dockerfiles/Dockerfile.python . && docker build -t harshithd/sentinel-executor-typescript:latest -f dockerfiles/Dockerfile.typescript .",
-    "docker:push": "docker push harshithd/sentinel-app-builder:latest && docker push harshithd/sentinel-master:latest && docker push harshithd/sentinel-executor-cpp:latest && docker push harshithd/sentinel-executor-java:latest && docker push harshithd/sentinel-executor-javascript:latest && docker push harshithd/sentinel-executor-python:latest && docker push harshithd/sentinel-executor-typescript:latest"
+    "docker:build": "docker build -t maximus5479/sentinel-app-builder:latest -f Dockerfile.build . && docker build -t maximus5479/sentinel-master:latest -f Dockerfile.master . && docker build -t maximus5479/sentinel-executor-cpp:latest -f dockerfiles/Dockerfile.cpp . && docker build -t maximus5479/sentinel-executor-java:latest -f dockerfiles/Dockerfile.java . && docker build -t maximus5479/sentinel-executor-javascript:latest -f dockerfiles/Dockerfile.javascript . && docker build -t maximus5479/sentinel-executor-python:latest -f dockerfiles/Dockerfile.python . && docker build -t maximus5479/sentinel-executor-typescript:latest -f dockerfiles/Dockerfile.typescript .",
+    "docker:push": "docker push maximus5479/sentinel-app-builder:latest && docker push maximus5479/sentinel-master:latest && docker push maximus5479/sentinel-executor-cpp:latest && docker push maximus5479/sentinel-executor-java:latest && docker push maximus5479/sentinel-executor-javascript:latest && docker push maximus5479/sentinel-executor-python:latest && docker push maximus5479/sentinel-executor-typescript:latest"
   },
   "dependencies": {
     "@types/inquirer": "^8.2.11",

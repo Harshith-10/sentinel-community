@@ -17,7 +17,7 @@ spec:
           type: RuntimeDefault
       containers:
       - name: javascript-executor
-        image: harshithd/sentinel-executor-javascript:latest
+        image: maximus5479/sentinel-executor-javascript:latest
         imagePullPolicy: Always
         securityContext:
           allowPrivilegeEscalation: false

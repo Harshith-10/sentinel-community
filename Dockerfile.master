@@ -1,4 +1,4 @@
-FROM harshithd/sentinel-app-builder:latest AS builder
+FROM maximus5479/sentinel-app-builder:latest AS builder
 
 FROM node:22-alpine
 

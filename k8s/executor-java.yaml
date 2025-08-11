@@ -17,7 +17,7 @@ spec:
           type: RuntimeDefault
       containers:
       - name: java-executor
-        image: harshithd/sentinel-executor-java:latest
+        image: maximus5479/sentinel-executor-java:latest
         imagePullPolicy: Always
         securityContext:
           allowPrivilegeEscalation: false

@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: master
-        image: harshithd/sentinel-master:latest
+        image: maximus5479/sentinel-master:latest
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8910
